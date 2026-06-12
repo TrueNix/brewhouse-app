@@ -1,0 +1,54 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2c2520"/>
+      <stop offset="1" stop-color="#15110d"/>
+    </linearGradient>
+    <linearGradient id="liquid" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffc24b"/>
+      <stop offset="0.55" stop-color="#f59e0b"/>
+      <stop offset="1" stop-color="#d97706"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.62" r="0.55">
+      <stop offset="0" stop-color="#ffb02e" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#ffb02e" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="glassClip">
+      <path d="M 372 320 Q 372 312 380 312 L 644 312 Q 652 312 652 320 L 634 742 Q 632 760 612 760 L 412 760 Q 392 760 390 742 Z"/>
+    </clipPath>
+  </defs>
+
+  <!-- macOS-style rounded square -->
+  <rect x="96" y="96" width="832" height="832" rx="196" fill="url(#bg)"/>
+  <rect x="96" y="96" width="832" height="832" rx="196" fill="url(#glow)"/>
+  <rect x="96.5" y="96.5" width="831" height="831" rx="195.5" fill="none" stroke="#ffffff" stroke-opacity="0.06" stroke-width="1.5"/>
+
+  <!-- liquid (clipped to glass) -->
+  <g clip-path="url(#glassClip)">
+    <rect x="380" y="430" width="270" height="340" fill="url(#liquid)"/>
+    <circle cx="470" cy="560" r="10" fill="#fff6e6" opacity="0.35"/>
+    <circle cx="556" cy="620" r="7" fill="#fff6e6" opacity="0.3"/>
+    <circle cx="500" cy="680" r="6" fill="#fff6e6" opacity="0.25"/>
+    <!-- inner left highlight -->
+    <rect x="404" y="360" width="20" height="360" rx="10" fill="#ffffff" opacity="0.16"/>
+  </g>
+
+  <!-- foam cap -->
+  <g fill="#fdf6ea">
+    <ellipse cx="512" cy="426" rx="146" ry="30"/>
+    <circle cx="430" cy="410" r="30"/>
+    <circle cx="492" cy="398" r="34"/>
+    <circle cx="556" cy="404" r="30"/>
+    <circle cx="600" cy="416" r="24"/>
+  </g>
+
+  <!-- glass outline -->
+  <path d="M 372 320 Q 372 312 380 312 L 644 312 Q 652 312 652 320 L 634 742 Q 632 760 612 760 L 412 760 Q 392 760 390 742 Z"
+        fill="none" stroke="#fdf6ea" stroke-opacity="0.92" stroke-width="14" stroke-linejoin="round"/>
+
+  <!-- aroma / steam -->
+  <g fill="none" stroke="#fdf6ea" stroke-opacity="0.5" stroke-width="9" stroke-linecap="round">
+    <path d="M 476 268 q 22 -26 0 -52 q -22 -26 0 -52"/>
+    <path d="M 548 268 q 22 -26 0 -52 q -22 -26 0 -52"/>
+  </g>
+</svg>

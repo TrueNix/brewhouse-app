@@ -1,0 +1,47 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Brewhouse",
+  "version": "0.1.0",
+  "identifier": "io.alice.brewhouse",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:1420",
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build"
+  },
+  "app": {
+    "withGlobalTauri": false,
+    "windows": [
+      {
+        "title": "Brewhouse",
+        "label": "main",
+        "width": 1200,
+        "height": 820,
+        "minWidth": 940,
+        "minHeight": 660,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true,
+        "fullscreen": false,
+        "resizable": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; connect-src 'self' ipc: http://ipc.localhost"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["app", "dmg"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "category": "DeveloperTool",
+    "copyright": "© 2026 Brewhouse",
+    "shortDescription": "A beautiful desktop GUI for Homebrew",
+    "longDescription": "Brewhouse is a native macOS desktop interface for the Homebrew package manager: update, search, install, and manage formulae, casks, and taps."
+  }
+}

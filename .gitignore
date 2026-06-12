@@ -1,0 +1,19 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+dist-ssr/
+
+# tauri / rust
+src-tauri/target/
+src-tauri/gen/
+
+# misc
+.DS_Store
+*.local
+*.log
+.vite/
+
+# local tooling
+.claude/
