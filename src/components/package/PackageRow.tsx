@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 import { Icon } from "../ui/Icon";
+import { PackageIcon } from "./PackageIcon";
 import { cleanVersion } from "../../lib/format";
 import type { PackageKind } from "../../lib/types";
 import "./package.css";
@@ -8,6 +9,8 @@ interface PackageRowProps {
   kind: PackageKind;
   name: string;
   desc?: string | null;
+  /** Enables a real app icon for casks. */
+  homepage?: string | null;
   sub?: ReactNode;
   badges?: ReactNode;
   meta?: ReactNode;
@@ -21,6 +24,7 @@ export function PackageRow({
   kind,
   name,
   desc,
+  homepage,
   sub,
   badges,
   meta,
@@ -32,9 +36,7 @@ export function PackageRow({
   const clickable = Boolean(onOpen);
   const main = (
     <>
-      <span className={`pkg-glyph pkg-glyph--${kind}`}>
-        <Icon name={kind === "cask" ? "layers" : "box"} size={19} />
-      </span>
+      <PackageIcon kind={kind} homepage={homepage} size={38} />
       <span className="pkg-body">
         <span className="pkg-head">
           <span className="pkg-name">{name}</span>

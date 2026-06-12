@@ -164,6 +164,7 @@ export function DiscoverView() {
         name={pkg.name}
         desc={pkg.desc}
         version={pkg.version}
+        homepage={pkg.homepage}
         rank={opts.rank}
         downloads={opts.downloads}
         trending={opts.trending}

@@ -3,6 +3,7 @@ import { api } from "../../lib/api";
 import { errorMessage, hostOf } from "../../lib/format";
 import { Badge, Button, IconButton, Spinner } from "../ui";
 import { Icon } from "../ui/Icon";
+import { PackageIcon } from "./PackageIcon";
 import { usePackageActions } from "../../hooks/usePackageActions";
 import type { PackageDetail, PackageKind } from "../../lib/types";
 import "./drawer.css";
@@ -101,9 +102,7 @@ export function PackageDrawer({ name, kind, open, onClose }: PackageDrawerProps)
         onKeyDown={trapFocus}
       >
         <header className="drawer__head" data-tauri-drag-region>
-          <span className={`pkg-glyph pkg-glyph--${kind}`}>
-            <Icon name={kind === "cask" ? "layers" : "box"} size={22} />
-          </span>
+          <PackageIcon kind={kind} homepage={detail?.homepage} size={46} />
           <div className="drawer__titles">
             <div className="drawer__name">{name}</div>
             {detail && detail.fullName !== name && (

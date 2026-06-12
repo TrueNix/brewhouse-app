@@ -41,23 +41,12 @@
   border-radius: var(--radius-lg);
 }
 
-.app-card__icon {
+.app-card__iconwrap {
   position: relative;
-  width: 58px;
-  height: 58px;
-  border-radius: var(--radius-md);
-  display: grid;
-  place-items: center;
   flex-shrink: 0;
-  box-shadow: var(--shadow-sm), inset 0 1px 0 oklch(100% 0 0 / 0.25);
 }
-.app-card__icon--formula {
-  background: linear-gradient(150deg, var(--accent-strong), var(--accent-press));
-  color: var(--on-accent);
-}
-.app-card__icon--cask {
-  background: linear-gradient(150deg, var(--copper), oklch(46% 0.13 40));
-  color: oklch(98% 0.01 80);
+.app-card__iconwrap .pkg-icon {
+  box-shadow: var(--shadow-sm), inset 0 1px 0 oklch(100% 0 0 / 0.18);
 }
 
 .app-card__rank {

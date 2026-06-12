@@ -124,6 +124,7 @@ export function InstalledView() {
                   kind={pkg.kind}
                   name={pkg.name}
                   desc={pkg.desc}
+                  homepage={pkg.homepage}
                   busy={busy[pkg.name]}
                   onOpen={() => detail.open(pkg.name, pkg.kind)}
                   style={{ animationDelay: `${Math.min(i, 14) * 18}ms` }}

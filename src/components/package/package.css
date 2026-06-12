@@ -56,6 +56,33 @@
   background: var(--copper-soft);
 }
 
+/* PackageIcon: real app icon for casks, tinted glyph fallback otherwise. */
+.pkg-icon {
+  display: grid;
+  place-items: center;
+  border-radius: 28%;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.pkg-icon--formula {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+.pkg-icon--cask {
+  color: var(--copper);
+  background: var(--copper-soft);
+}
+.pkg-icon--real {
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--border-1);
+}
+.pkg-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 16%;
+}
+
 .pkg-body {
   display: block;
   min-width: 0;

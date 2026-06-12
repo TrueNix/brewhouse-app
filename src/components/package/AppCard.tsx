@@ -1,5 +1,6 @@
 import { Button } from "../ui";
 import { Icon } from "../ui/Icon";
+import { PackageIcon } from "./PackageIcon";
 import { compact, cleanVersion } from "../../lib/format";
 import type { PackageKind } from "../../lib/types";
 import "./appstore.css";
@@ -9,6 +10,8 @@ interface AppCardProps {
   name: string;
   desc?: string | null;
   version?: string;
+  /** Enables a real app icon for casks. */
+  homepage?: string | null;
   installed: boolean;
   /** Install count to show in the stat (year for top charts, 30d for trending). */
   downloads?: number;
@@ -26,6 +29,7 @@ export function AppCard({
   name,
   desc,
   version,
+  homepage,
   installed,
   downloads,
   rank,
@@ -56,8 +60,8 @@ export function AppCard({
   return (
     <div className={`app-card${busy ? " app-card--busy" : ""}`}>
       <button type="button" className="app-card__hit" onClick={onOpen} aria-label={cardLabel}>
-        <span className={`app-card__icon app-card__icon--${kind}`}>
-          <Icon name={kind === "cask" ? "layers" : "box"} size={26} />
+        <span className="app-card__iconwrap">
+          <PackageIcon kind={kind} homepage={homepage} size={56} />
           {rank !== undefined && <span className={`app-card__rank${rankClass}`}>{rank}</span>}
         </span>
         <span className="app-card__info">
