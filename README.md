@@ -20,9 +20,11 @@
 
 ## Screenshots
 
-Brewhouse is a real desktop window — run it with `npm run app` to see it live. To
-add screenshots here, capture the window (macOS: `⌘⇧4` then `Space`) into
-`docs/screenshots/` and reference them in this section.
+<p align="center">
+  <img src="docs/screenshots/discover.png" alt="Brewhouse Discover — Trending casks with real app icons, ranked by recent installs" width="100%">
+</p>
+
+<p align="center"><em>Discover — Trending casks ranked by 30-day install momentum, with real app icons, live install counts, and one-click installs.</em></p>
 
 ## Features
 
