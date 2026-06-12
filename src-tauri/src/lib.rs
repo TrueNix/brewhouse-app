@@ -107,9 +107,10 @@ async fn ensure_catalog(
         .path()
         .app_cache_dir()
         .map_err(|e| format!("No cache directory: {e}"))?;
-    let cat = tauri::async_runtime::spawn_blocking(move || catalog::load_or_fetch(&cache_dir, force))
-        .await
-        .map_err(|e| e.to_string())??;
+    let cat =
+        tauri::async_runtime::spawn_blocking(move || catalog::load_or_fetch(&cache_dir, force))
+            .await
+            .map_err(|e| e.to_string())??;
     *lock(&state.catalog) = Some(cat);
     Ok(status_snapshot(&state))
 }
@@ -122,9 +123,7 @@ fn search_catalog(
     limit: Option<usize>,
 ) -> Result<Vec<SearchResult>, String> {
     let guard = lock(&state.catalog);
-    let cat = guard
-        .as_ref()
-        .ok_or("Package catalog is still loading")?;
+    let cat = guard.as_ref().ok_or("Package catalog is still loading")?;
     let keys = lock(&state.installed_keys);
     Ok(catalog::search(cat, &query, &kind, limit, &keys))
 }
@@ -190,7 +189,10 @@ async fn get_package_info(
             let token = opt_str(&c["token"]).unwrap_or(name.clone());
             let installed_version = opt_str(&c["installed"]);
             let desc = opt_str(&c["desc"]).or_else(|| {
-                c["name"].as_array().and_then(|a| a.first()).and_then(opt_str)
+                c["name"]
+                    .as_array()
+                    .and_then(|a| a.first())
+                    .and_then(opt_str)
             });
             Ok(PackageDetail {
                 full_name: opt_str(&c["full_token"]).unwrap_or_else(|| token.clone()),
@@ -338,11 +340,7 @@ fn remove_tap(app: AppHandle, state: State<'_, AppState>, name: String) -> Resul
 }
 
 #[tauri::command]
-async fn set_pinned(
-    state: State<'_, AppState>,
-    name: String,
-    pinned: bool,
-) -> Result<(), String> {
+async fn set_pinned(state: State<'_, AppState>, name: String, pinned: bool) -> Result<(), String> {
     validate_token(&name)?;
     let brew = require_brew(&state)?;
     tauri::async_runtime::spawn_blocking(move || -> Result<(), String> {
@@ -358,13 +356,25 @@ fn open_url(url: String) -> Result<(), String> {
     let is_http = url.starts_with("https://") || url.starts_with("http://");
     let has_unsafe = url.chars().any(|c| c.is_control() || c.is_whitespace());
     // For "scheme://host/rest", the host is the 3rd `/`-separated segment.
-    let host = url.splitn(4, '/').nth(2).unwrap_or("");
+    let host = url.split('/').nth(2).unwrap_or("");
     if !is_http || has_unsafe || host.is_empty() {
         return Err("Only well-formed http(s) links can be opened.".into());
     }
-    std::process::Command::new("/usr/bin/open")
-        .arg(&url)
-        .spawn()
+    // Pick the OS's "open this URL" helper.
+    let mut cmd = if cfg!(target_os = "macos") {
+        let mut c = std::process::Command::new("/usr/bin/open");
+        c.arg(&url);
+        c
+    } else if cfg!(target_os = "windows") {
+        let mut c = std::process::Command::new("cmd");
+        c.args(["/C", "start", "", &url]);
+        c
+    } else {
+        let mut c = std::process::Command::new("xdg-open");
+        c.arg(&url);
+        c
+    };
+    cmd.spawn()
         .map_err(|e| format!("Could not open link: {e}"))?;
     Ok(())
 }

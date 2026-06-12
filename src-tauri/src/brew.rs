@@ -67,9 +67,7 @@ pub fn run_brew_capture(brew: &Path, args: &[&str]) -> Result<String, String> {
 }
 
 fn opt_str(v: &Value) -> Option<String> {
-    v.as_str()
-        .map(|s| s.to_string())
-        .filter(|s| !s.is_empty())
+    v.as_str().map(|s| s.to_string()).filter(|s| !s.is_empty())
 }
 
 // ---------------------------------------------------------------------------
