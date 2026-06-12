@@ -20,11 +20,19 @@
 
 ## Screenshots
 
-<p align="center">
-  <img src="docs/screenshots/discover.png" alt="Brewhouse Discover — Trending casks with real app icons, ranked by recent installs" width="100%">
-</p>
+Discover — Trending casks ranked by 30-day install momentum, with real app icons,
+live install counts, and one-click installs. Light and dark follow the system.
 
-<p align="center"><em>Discover — Trending casks ranked by 30-day install momentum, with real app icons, live install counts, and one-click installs.</em></p>
+<table>
+  <tr>
+    <td><img src="docs/screenshots/discover-dark.png" alt="Brewhouse Discover in dark mode"></td>
+    <td><img src="docs/screenshots/discover-light.png" alt="Brewhouse Discover in light mode"></td>
+  </tr>
+  <tr>
+    <td align="center"><em>Dark</em></td>
+    <td align="center"><em>Light</em></td>
+  </tr>
+</table>
 
 ## Features
 
