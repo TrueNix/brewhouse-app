@@ -1,7 +1,14 @@
 name: Release
 
-# Build the macOS app bundle and attach it to a GitHub Release. Triggered by
-# pushing a version tag (e.g. `v0.1.0`) or run manually from the Actions tab.
+# Build the macOS app and publish a GitHub Release. Triggered by pushing a
+# version tag (e.g. `v0.2.0`) or run manually from the Actions tab.
+#
+# Robustness:
+#   1. The build is retried once (the macOS DMG step — hdiutil/AppleScript — is
+#      flaky on headless runners).
+#   2. The DMG is best-effort: the `.app` archive always ships; the `.dmg` is
+#      attached only when bundling succeeds. A release is never blocked by a
+#      flaky DMG.
 on:
   push:
     tags:
@@ -34,21 +41,67 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
-      - name: Build and release
-        uses: tauri-apps/tauri-action@v0
+      - name: Read version
+        id: ver
+        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Build app (retry once; DMG best-effort)
+        shell: bash
+        run: |
+          set +e
+          attempt() { npx tauri build --target universal-apple-darwin --bundles app,dmg; }
+          attempt; code=$?
+          if [ $code -ne 0 ]; then
+            echo "::warning::Build with DMG failed (likely the flaky macOS DMG step) — retrying once."
+            attempt; code=$?
+          fi
+          if [ $code -ne 0 ]; then
+            echo "::warning::DMG bundling still failing — building the .app only so the release can still ship."
+            npx tauri build --target universal-apple-darwin --bundles app; code=$?
+          fi
+          if [ $code -ne 0 ]; then
+            echo "::error::macOS app build failed."
+            exit 1
+          fi
+
+      - name: Collect artifacts
+        id: artifacts
+        shell: bash
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.ver.outputs.version }}
+        run: |
+          set -euo pipefail
+          BUNDLE="src-tauri/target/universal-apple-darwin/release/bundle"
+          mkdir -p dist-release
+          if compgen -G "$BUNDLE/dmg/*.dmg" > /dev/null; then
+            cp "$BUNDLE"/dmg/*.dmg dist-release/
+            echo "dmg=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::No .dmg was produced — shipping the .app archive only."
+            echo "dmg=false" >> "$GITHUB_OUTPUT"
+          fi
+          APP_PATH="$(ls -d "$BUNDLE"/macos/*.app | head -1)"
+          tar -czf "dist-release/Brewhouse_${VERSION}_universal.app.tar.gz" \
+            -C "$BUNDLE/macos" "$(basename "$APP_PATH")"
+          echo "Artifacts:"; ls -lh dist-release
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
         with:
-          tagName: brewhouse-v__VERSION__
-          releaseName: Brewhouse v__VERSION__
-          releaseBody: |
-            ## Brewhouse v__VERSION__
-
-            Download the **`.dmg`** (universal: Apple Silicon + Intel).
-
-            The build is unsigned, so on first launch either right-click the app
-            and choose **Open**, or run:
-            `xattr -dr com.apple.quarantine /Applications/Brewhouse.app`
-          releaseDraft: false
+          tag_name: brewhouse-v${{ steps.ver.outputs.version }}
+          name: Brewhouse v${{ steps.ver.outputs.version }}
+          draft: false
           prerelease: false
-          args: --target universal-apple-darwin
+          make_latest: "true"
+          fail_on_unmatched_files: true
+          files: dist-release/*
+          body: |
+            ## Brewhouse v${{ steps.ver.outputs.version }}
+
+            Download the **`.dmg`** (universal: Apple Silicon + Intel). If a build's
+            DMG step flaked on CI, install from the **`.app.tar.gz`** instead
+            (`tar -xzf` it into `/Applications`).
+
+            Builds are unsigned, so on first launch either right-click the app and
+            choose **Open**, or run:
+            `xattr -dr com.apple.quarantine /Applications/Brewhouse.app`
