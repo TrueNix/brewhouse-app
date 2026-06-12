@@ -139,6 +139,9 @@ const PATHS: Record<string, JSX.Element> = {
     </>
   ),
   filter: <path d="M3 5h18l-7 8v6l-4-2v-4L3 5z" />,
+  flame: (
+    <path d="M12 2.5c2.4 3 4.4 5 4.4 8.4a4.4 4.4 0 1 1-8.8 0c0-1.9 1-3.2 1.8-4.1.6 1 1.4 1.4 2 1.2C12 6.4 11.5 4.4 12 2.5z" />
+  ),
 };
 
 export type IconName = keyof typeof PATHS;

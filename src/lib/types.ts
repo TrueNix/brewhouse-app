@@ -40,6 +40,22 @@ export interface SearchResult extends CatalogPackage {
   installed: boolean;
 }
 
+export interface TopPackage extends CatalogPackage {
+  installed: boolean;
+  /** Installs over the trailing 365 days (Homebrew analytics). */
+  downloads: number;
+  rank: number;
+}
+
+export interface TopCharts {
+  formulae: TopPackage[];
+  casks: TopPackage[];
+  trendingFormulae: TopPackage[];
+  trendingCasks: TopPackage[];
+  /** Unix epoch *seconds* of the cached analytics. */
+  updatedAt: number;
+}
+
 export interface Tap {
   name: string;
   official: boolean;

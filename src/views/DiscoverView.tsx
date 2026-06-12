@@ -1,32 +1,50 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ViewShell } from "../components/shell/ViewShell";
 import {
-  Badge,
   Button,
   EmptyState,
   SearchInput,
   Segmented,
+  Skeleton,
   Spinner,
   type SegmentedOption,
 } from "../components/ui";
 import { Icon } from "../components/ui/Icon";
-import { PackageRow } from "../components/package/PackageRow";
-import { PackageListSkeleton } from "../components/package/PackageListSkeleton";
+import { AppCard } from "../components/package/AppCard";
 import { api } from "../lib/api";
-import { cleanVersion, compact, errorMessage, timeAgo } from "../lib/format";
+import { compact, errorMessage, timeAgo } from "../lib/format";
 import { usePackageActions } from "../hooks/usePackageActions";
 import { useDetail } from "../components/package/DetailProvider";
 import { useBrewData } from "../data/BrewDataProvider";
-import type { KindFilter, SearchResult } from "../lib/types";
+import type { KindFilter, SearchResult, TopCharts, TopPackage } from "../lib/types";
 import "./views.css";
-
-const POPULAR = ["wget", "git", "node", "python", "ripgrep", "htop", "ffmpeg", "docker", "go", "neovim"];
 
 interface CatalogState {
   state: "loading" | "ready" | "error";
   count: number;
   updatedAt: number | null;
   error?: string;
+}
+
+const keyOf = (p: { kind: string; name: string }) => `${p.kind}:${p.name}`;
+
+function CardGridSkeleton({ count = 8 }: { count?: number }) {
+  return (
+    <div className="app-grid" aria-hidden="true">
+      {Array.from({ length: count }).map((_, i) => (
+        <div className="app-card" key={i} style={{ padding: "var(--space-4)" }}>
+          <div style={{ display: "flex", gap: "var(--space-3)" }}>
+            <Skeleton width={58} height={58} radius={14} />
+            <div style={{ flex: 1, display: "grid", gap: 8, paddingTop: 4 }}>
+              <Skeleton width="55%" height={13} radius={6} />
+              <Skeleton width="35%" height={10} radius={6} />
+              <Skeleton width="92%" height={10} radius={6} />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 export function DiscoverView() {
@@ -44,6 +62,8 @@ export function DiscoverView() {
   const [searching, setSearching] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [busy, setBusy] = useState<Record<string, boolean>>({});
+  const [charts, setCharts] = useState<TopCharts | null>(null);
+  const [chartsError, setChartsError] = useState<string | null>(null);
   const alive = useRef(true);
 
   useEffect(() => {
@@ -60,9 +80,17 @@ export function DiscoverView() {
         setCatalog({ state: "ready", count: status.catalogCount, updatedAt: status.catalogUpdatedAt });
       }
     } catch (err) {
-      if (alive.current) {
-        setCatalog({ state: "error", count: 0, updatedAt: null, error: errorMessage(err) });
-      }
+      if (alive.current) setCatalog({ state: "error", count: 0, updatedAt: null, error: errorMessage(err) });
+    }
+  }
+
+  async function loadCharts(force = false) {
+    setChartsError(null);
+    try {
+      const c = await api.topDownloaded(40, force);
+      if (alive.current) setCharts(c);
+    } catch (err) {
+      if (alive.current) setChartsError(errorMessage(err));
     }
   }
 
@@ -70,7 +98,14 @@ export function DiscoverView() {
     void loadCatalog(false);
   }, []);
 
-  // Debounced catalog search.
+  // Once the catalog is ready, pull the download + trending charts.
+  useEffect(() => {
+    if (catalog.state === "ready" && !charts) void loadCharts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [catalog.state]);
+
+  // Debounced catalog search with a latest-request guard so a slow older
+  // response can't overwrite a newer one.
   useEffect(() => {
     if (catalog.state !== "ready") return;
     const q = query.trim();
@@ -79,40 +114,94 @@ export function DiscoverView() {
       setSearching(false);
       return;
     }
+    let current = true;
     setSearching(true);
     const id = window.setTimeout(async () => {
       try {
         const found = await api.searchCatalog(q, kind, 60);
-        if (alive.current) setResults(found);
+        if (alive.current && current) setResults(found);
       } catch {
-        if (alive.current) setResults([]);
+        if (alive.current && current) setResults([]);
       } finally {
-        if (alive.current) setSearching(false);
+        if (alive.current && current) setSearching(false);
       }
     }, 180);
-    return () => window.clearTimeout(id);
+    return () => {
+      current = false;
+      window.clearTimeout(id);
+    };
   }, [query, kind, catalog.state]);
 
-  // Re-flag installed state in current results after an install/uninstall.
-  useEffect(() => {
-    if (!installed.data) return;
-    const installedKeys = new Set(installed.data.map((p) => `${p.kind}:${p.name}`));
-    setResults((prev) =>
-      prev.map((r) => {
-        const isInstalled = installedKeys.has(`${r.kind}:${r.name}`);
-        return isInstalled === r.installed ? r : { ...r, installed: isInstalled };
-      }),
-    );
-  }, [installed.data]);
+  // Live installed lookup so cards reflect installs/uninstalls authoritatively.
+  const installedKeys = useMemo(
+    () => new Set((installed.data ?? []).map(keyOf)),
+    [installed.data],
+  );
+  const installedReady = installed.data != null;
+  const isInstalled = (pkg: TopPackage | SearchResult) =>
+    installedReady ? installedKeys.has(keyOf(pkg)) : pkg.installed;
 
-  async function runItem(name: string, fn: () => Promise<unknown>) {
-    setBusy((b) => ({ ...b, [name]: true }));
+  async function runItem(key: string, fn: () => Promise<unknown>) {
+    setBusy((b) => ({ ...b, [key]: true }));
     await fn();
+    if (!alive.current) return;
     setBusy((b) => {
       const next = { ...b };
-      delete next[name];
+      delete next[key];
       return next;
     });
+  }
+
+  function renderCard(
+    pkg: TopPackage | SearchResult,
+    opts: { rank?: number; downloads?: number; trending?: boolean },
+  ) {
+    const k = keyOf(pkg);
+    return (
+      <AppCard
+        key={k}
+        kind={pkg.kind}
+        name={pkg.name}
+        desc={pkg.desc}
+        version={pkg.version}
+        rank={opts.rank}
+        downloads={opts.downloads}
+        trending={opts.trending}
+        installed={isInstalled(pkg)}
+        busy={busy[k]}
+        onOpen={() => detail.open(pkg.name, pkg.kind)}
+        onInstall={() => runItem(k, () => actions.install(pkg.name, pkg.kind))}
+      />
+    );
+  }
+
+  function section(
+    title: string,
+    sub: string,
+    items: TopPackage[],
+    variant: "top" | "trending",
+  ): ReactNode {
+    if (items.length === 0) return null;
+    return (
+      <div className="chart-section">
+        <div className="chart-head">
+          {variant === "trending" && (
+            <span className="chart-head__flame">
+              <Icon name="flame" size={18} />
+            </span>
+          )}
+          <span className="chart-head__title">{title}</span>
+          <span className="chart-head__kind">{sub}</span>
+        </div>
+        <div className="app-grid">
+          {items.map((p) =>
+            variant === "trending"
+              ? renderCard(p, { downloads: p.downloads, trending: true })
+              : renderCard(p, { rank: p.rank, downloads: p.downloads }),
+          )}
+        </div>
+      </div>
+    );
   }
 
   const segments: SegmentedOption<KindFilter>[] = [
@@ -129,7 +218,7 @@ export function DiscoverView() {
           <div className="discover-prep__title">Preparing the catalog</div>
           <p className="discover-prep__desc">
             Fetching the full list of formulae and casks from formulae.brew.sh. This happens once a
-            day and powers instant search.
+            day and powers instant search and the download charts.
           </p>
         </div>
       </ViewShell>
@@ -159,11 +248,48 @@ export function DiscoverView() {
 
   const hasQuery = query.trim().length > 0;
 
+  // Browse sections by filter.
+  function browseSections(): ReactNode {
+    if (!charts) return null;
+    if (kind === "formula") {
+      return (
+        <>
+          {section("Trending", "gaining now · 30d", charts.trendingFormulae.slice(0, 12), "trending")}
+          {section("Top Downloaded", "most installed · 1y", charts.formulae, "top")}
+        </>
+      );
+    }
+    if (kind === "cask") {
+      return (
+        <>
+          {section("Trending", "gaining now · 30d", charts.trendingCasks.slice(0, 12), "trending")}
+          {section("Top Downloaded", "most installed · 1y", charts.casks, "top")}
+        </>
+      );
+    }
+    // "all": a mixed trending row, then per-kind top charts.
+    const trendingMix = [
+      ...charts.trendingFormulae.slice(0, 4),
+      ...charts.trendingCasks.slice(0, 4),
+    ];
+    return (
+      <>
+        {section("Trending now", "gaining the most installs this month", trendingMix, "trending")}
+        {section("Top Formulae", "most installed · 1y", charts.formulae.slice(0, 12), "top")}
+        {section("Top Casks", "most installed · 1y", charts.casks.slice(0, 12), "top")}
+      </>
+    );
+  }
+
   return (
     <ViewShell
       eyebrow="Catalog"
       title="Discover"
-      subtitle={`Search ${compact(catalog.count)} formulae & casks`}
+      subtitle={
+        hasQuery
+          ? `Searching ${compact(catalog.count)} packages`
+          : "What's trending and most installed across Homebrew"
+      }
     >
       <div className="discover-toolbar">
         <SearchInput
@@ -175,38 +301,10 @@ export function DiscoverView() {
         <Segmented options={segments} value={kind} onChange={setKind} />
       </div>
 
-      {!hasQuery ? (
-        <>
-          <div className="suggest">
-            <div className="section-label">Popular picks</div>
-            <div className="suggest__chips">
-              {POPULAR.map((name) => (
-                <button key={name} className="suggest__chip" onClick={() => setQuery(name)}>
-                  <Icon name="search" size={14} />
-                  {name}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="catalog-foot">
-            <Icon name="clock" size={13} />
-            Catalog updated {timeAgo(catalog.updatedAt)}
-            <button
-              className="drawer__link"
-              onClick={async () => {
-                setRefreshing(true);
-                await loadCatalog(true);
-                if (alive.current) setRefreshing(false);
-              }}
-            >
-              {refreshing ? "Refreshing…" : "Refresh"}
-            </button>
-          </div>
-        </>
-      ) : (
+      {hasQuery ? (
         <>
           <div className="view-toolbar">
-            <span className="result-count">
+            <span className="result-count" role="status" aria-live="polite">
               {searching ? (
                 "Searching…"
               ) : (
@@ -220,7 +318,7 @@ export function DiscoverView() {
           </div>
 
           {searching && results.length === 0 ? (
-            <PackageListSkeleton rows={5} />
+            <CardGridSkeleton count={6} />
           ) : results.length === 0 ? (
             <EmptyState
               icon="search"
@@ -228,54 +326,40 @@ export function DiscoverView() {
               description={`Nothing in the catalog matches “${query.trim()}”. Try a different term or check the spelling.`}
             />
           ) : (
-            <div className="surface pkg-list stagger">
-              {results.map((pkg, i) => (
-                <PackageRow
-                  key={`${pkg.kind}:${pkg.name}`}
-                  kind={pkg.kind}
-                  name={pkg.name}
-                  desc={pkg.desc}
-                  busy={busy[pkg.name]}
-                  onOpen={() => detail.open(pkg.name, pkg.kind)}
-                  style={{ animationDelay: `${Math.min(i, 12) * 20}ms` }}
-                  sub={pkg.tap ? <span className="mono">{pkg.tap}</span> : undefined}
-                  badges={
-                    <>
-                      <Badge tone={pkg.kind === "cask" ? "copper" : "amber"}>
-                        {pkg.kind === "cask" ? "Cask" : "Formula"}
-                      </Badge>
-                      {pkg.deprecated && (
-                        <Badge tone="danger" icon="alert">
-                          Deprecated
-                        </Badge>
-                      )}
-                    </>
-                  }
-                  meta={
-                    pkg.version ? <span className="ver-pill mono">{cleanVersion(pkg.version)}</span> : undefined
-                  }
-                  actions={
-                    pkg.installed ? (
-                      <span className="installed-badge">
-                        <Icon name="checkCircle" size={15} />
-                        Installed
-                      </span>
-                    ) : (
-                      <Button
-                        size="sm"
-                        variant="primary"
-                        iconLeft="download"
-                        loading={busy[pkg.name]}
-                        onClick={() => runItem(pkg.name, () => actions.install(pkg.name, pkg.kind))}
-                      >
-                        Install
-                      </Button>
-                    )
-                  }
-                />
-              ))}
-            </div>
+            <div className="app-grid">{results.map((p) => renderCard(p, {}))}</div>
           )}
+        </>
+      ) : chartsError ? (
+        <>
+          <div className="error-banner">
+            <Icon name="alert" size={16} />
+            {chartsError}
+          </div>
+          <Button variant="secondary" iconLeft="refresh" onClick={() => void loadCharts(true)}>
+            Retry charts
+          </Button>
+        </>
+      ) : !charts ? (
+        <CardGridSkeleton count={8} />
+      ) : (
+        <>
+          {browseSections()}
+
+          <div className="catalog-foot">
+            <Icon name="clock" size={13} />
+            Charts &amp; catalog updated {timeAgo(charts.updatedAt)}
+            <button
+              className="drawer__link"
+              onClick={async () => {
+                setRefreshing(true);
+                await loadCatalog(true);
+                await loadCharts(true);
+                if (alive.current) setRefreshing(false);
+              }}
+            >
+              {refreshing ? "Refreshing…" : "Refresh"}
+            </button>
+          </div>
         </>
       )}
     </ViewShell>

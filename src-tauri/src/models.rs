@@ -53,6 +53,29 @@ pub struct SearchResult {
     pub installed: bool,
 }
 
+/// A package ranked by install count, for the "Top Downloaded" charts.
+#[derive(Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct TopPackage {
+    #[serde(flatten)]
+    pub pkg: CatalogPackage,
+    pub installed: bool,
+    /// Installs over the trailing 365 days (from Homebrew analytics).
+    pub downloads: u64,
+    pub rank: u32,
+}
+
+#[derive(Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct TopCharts {
+    pub formulae: Vec<TopPackage>,
+    pub casks: Vec<TopPackage>,
+    pub trending_formulae: Vec<TopPackage>,
+    pub trending_casks: Vec<TopPackage>,
+    /// Unix epoch seconds of the cached analytics.
+    pub updated_at: u64,
+}
+
 #[derive(Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Tap {

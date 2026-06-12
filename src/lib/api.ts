@@ -10,6 +10,7 @@ import type {
   PackageKind,
   SearchResult,
   Tap,
+  TopCharts,
 } from "./types";
 
 export const api = {
@@ -22,6 +23,8 @@ export const api = {
   ensureCatalog: (force = false) => invoke<BrewStatus>("ensure_catalog", { force }),
   searchCatalog: (query: string, kind: KindFilter, limit?: number) =>
     invoke<SearchResult[]>("search_catalog", { query, kind, limit }),
+  topDownloaded: (limit?: number, force?: boolean) =>
+    invoke<TopCharts>("top_downloaded", { limit, force }),
   getPackageInfo: (name: string, kind: PackageKind) =>
     invoke<PackageDetail>("get_package_info", { name, kind }),
 

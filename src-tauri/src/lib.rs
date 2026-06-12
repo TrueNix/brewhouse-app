@@ -21,6 +21,8 @@ pub struct AppState {
     /// "kind:name" keys for currently installed packages, used to flag search
     /// results. Refreshed by `list_installed`.
     pub installed_keys: Mutex<HashSet<String>>,
+    /// Install-count analytics, loaded lazily for the "Top Downloaded" charts.
+    pub analytics: Mutex<Option<catalog::Analytics>>,
     /// Resolved once at startup — the version string never changes at runtime,
     /// so `get_status` never has to shell out on the main thread.
     pub brew_version: String,
@@ -126,6 +128,58 @@ fn search_catalog(
     let cat = guard.as_ref().ok_or("Package catalog is still loading")?;
     let keys = lock(&state.installed_keys);
     Ok(catalog::search(cat, &query, &kind, limit, &keys))
+}
+
+#[tauri::command]
+async fn top_downloaded(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    limit: Option<usize>,
+    force: Option<bool>,
+) -> Result<TopCharts, String> {
+    // Require the catalog first so we never download analytics for nothing.
+    if lock(&state.catalog).is_none() {
+        return Err("Package catalog is still loading".into());
+    }
+
+    // (Re)load analytics on first use, on explicit refresh, or once the
+    // in-memory copy has aged past the TTL.
+    let force = force.unwrap_or(false);
+    let needs_load = force
+        || match &*lock(&state.analytics) {
+            None => true,
+            Some(a) => catalog::is_stale(a.updated_at),
+        };
+    if needs_load {
+        let cache_dir = app
+            .path()
+            .app_cache_dir()
+            .map_err(|e| format!("No cache directory: {e}"))?;
+        let analytics = tauri::async_runtime::spawn_blocking(move || {
+            catalog::load_analytics(&cache_dir, force)
+        })
+        .await
+        .map_err(|e| e.to_string())??;
+        *lock(&state.analytics) = Some(analytics);
+    }
+
+    let cat_guard = lock(&state.catalog);
+    let cat = cat_guard
+        .as_ref()
+        .ok_or("Package catalog is still loading")?;
+    let an_guard = lock(&state.analytics);
+    let an = an_guard.as_ref().ok_or("Analytics are still loading")?;
+    let keys = lock(&state.installed_keys);
+    let limit = limit.unwrap_or(40).clamp(1, 200);
+    let (formulae, casks) = catalog::top_charts(cat, an, &keys, limit);
+    let (trending_formulae, trending_casks) = catalog::trending(cat, an, &keys, limit);
+    Ok(TopCharts {
+        formulae,
+        casks,
+        trending_formulae,
+        trending_casks,
+        updated_at: an.updated_at,
+    })
 }
 
 fn opt_str(v: &Value) -> Option<String> {
@@ -389,6 +443,7 @@ pub fn run() {
             brew_found,
             catalog: Mutex::new(None),
             installed_keys: Mutex::new(HashSet::new()),
+            analytics: Mutex::new(None),
             brew_version,
         })
         .invoke_handler(tauri::generate_handler![
@@ -398,6 +453,7 @@ pub fn run() {
             list_taps,
             ensure_catalog,
             search_catalog,
+            top_downloaded,
             get_package_info,
             install_package,
             uninstall_package,
