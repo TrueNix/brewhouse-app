@@ -12,20 +12,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  frontend:
-    name: Frontend · typecheck + build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-      - run: npm ci
-      - run: npm run build
-
-  rust:
-    name: Rust · fmt + clippy + build
+  check:
+    name: Build · typecheck · fmt · clippy
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -39,7 +27,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: ./src-tauri -> target
-      - name: Build frontend (so tauri-build finds ../dist)
+      - name: Install deps + build frontend (typecheck + bundle, also for tauri-build)
         run: |
           npm ci
           npm run build

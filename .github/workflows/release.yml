@@ -1,8 +1,7 @@
 name: Release
 
-# Build installable artifacts for every supported platform and attach them to
-# a GitHub Release. Triggered by pushing a version tag (e.g. `v0.1.0`) or run
-# manually from the Actions tab.
+# Build the macOS app bundle and attach it to a GitHub Release. Triggered by
+# pushing a version tag (e.g. `v0.1.0`) or run manually from the Actions tab.
 on:
   push:
     tags:
@@ -14,34 +13,10 @@ permissions:
 
 jobs:
   build:
-    name: Build · ${{ matrix.label }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - label: macOS (Universal)
-            os: macos-latest
-            rust_targets: aarch64-apple-darwin,x86_64-apple-darwin
-            args: --target universal-apple-darwin
-          - label: Linux (x86_64)
-            os: ubuntu-22.04
-            rust_targets: ""
-            args: ""
-    runs-on: ${{ matrix.os }}
+    name: Build · macOS (Universal)
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install Linux build dependencies
-        if: matrix.os == 'ubuntu-22.04'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libwebkit2gtk-4.1-dev \
-            libappindicator3-dev \
-            librsvg2-dev \
-            patchelf \
-            build-essential \
-            curl wget file libssl-dev libgtk-3-dev
 
       - uses: actions/setup-node@v4
         with:
@@ -50,7 +25,7 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.rust_targets }}
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
 
       - uses: Swatinem/rust-cache@v2
         with:
@@ -69,14 +44,11 @@ jobs:
           releaseBody: |
             ## Brewhouse v__VERSION__
 
-            Desktop builds of the Homebrew GUI.
+            Download the **`.dmg`** (universal: Apple Silicon + Intel).
 
-            **macOS** — download the `.dmg`. Builds are unsigned, so on first launch
-            either right-click the app and choose **Open**, or run:
+            The build is unsigned, so on first launch either right-click the app
+            and choose **Open**, or run:
             `xattr -dr com.apple.quarantine /Applications/Brewhouse.app`
-
-            **Linux** — download the `.AppImage` (portable) or `.deb`. Requires
-            [Homebrew on Linux](https://docs.brew.sh/Homebrew-on-Linux).
           releaseDraft: true
           prerelease: false
-          args: ${{ matrix.args }}
+          args: --target universal-apple-darwin

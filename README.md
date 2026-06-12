@@ -12,7 +12,7 @@
   <a href="https://github.com/TrueNix/brewhouse-app/actions/workflows/ci.yml"><img src="https://github.com/TrueNix/brewhouse-app/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://github.com/TrueNix/brewhouse-app/actions/workflows/release.yml"><img src="https://github.com/TrueNix/brewhouse-app/actions/workflows/release.yml/badge.svg" alt="Release"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-f5a623.svg" alt="License: MIT"></a>
-  <img src="https://img.shields.io/badge/platform-macOS%20%C2%B7%20Linux-555" alt="Platforms">
+  <img src="https://img.shields.io/badge/platform-macOS-555" alt="Platform: macOS">
   <img src="https://img.shields.io/badge/built%20with-Tauri%202%20%C2%B7%20React-f5a623" alt="Built with Tauri + React">
 </p>
 
@@ -35,17 +35,14 @@ add screenshots here, capture the window (macOS: `⌘⇧4` then `Space`) into
 
 ## Download
 
-Grab the latest build from the [**Releases**](https://github.com/TrueNix/brewhouse-app/releases) page:
+Grab the latest build from the [**Releases**](https://github.com/TrueNix/brewhouse-app/releases) page.
 
-- **macOS** — download the `.dmg` (universal: Apple Silicon + Intel). Builds are
-  **unsigned**, so on first launch right-click the app and choose **Open**, or run:
-  ```bash
-  xattr -dr com.apple.quarantine /Applications/Brewhouse.app
-  ```
-- **Linux** — download the `.AppImage` (portable) or `.deb`. Requires
-  [Homebrew on Linux](https://docs.brew.sh/Homebrew-on-Linux).
+Download the **`.dmg`** (universal: Apple Silicon + Intel). Builds are **unsigned**,
+so on first launch right-click the app and choose **Open**, or run:
 
-> Windows isn't built because Homebrew doesn't run there.
+```bash
+xattr -dr com.apple.quarantine /Applications/Brewhouse.app
+```
 
 ## Develop
 
@@ -70,8 +67,8 @@ git tag v0.1.0
 git push origin v0.1.0
 ```
 
-The [`Release`](.github/workflows/release.yml) workflow builds macOS (universal) and
-Linux artifacts and attaches them to a **draft** GitHub Release for you to review and
+The [`Release`](.github/workflows/release.yml) workflow builds the macOS (universal)
+app and attaches the `.dmg` to a **draft** GitHub Release for you to review and
 publish. You can also trigger it manually from the **Actions** tab.
 
 ## Architecture
@@ -96,7 +93,7 @@ names are validated against a strict allow-list, and `open_url` only accepts `ht
 
 ## Requirements
 
-- macOS or Linux with [Homebrew](https://brew.sh) installed
+- macOS with [Homebrew](https://brew.sh) installed (Apple Silicon or Intel)
 - Node 18+ and a Rust toolchain (for building)
 
 ## License

@@ -360,21 +360,9 @@ fn open_url(url: String) -> Result<(), String> {
     if !is_http || has_unsafe || host.is_empty() {
         return Err("Only well-formed http(s) links can be opened.".into());
     }
-    // Pick the OS's "open this URL" helper.
-    let mut cmd = if cfg!(target_os = "macos") {
-        let mut c = std::process::Command::new("/usr/bin/open");
-        c.arg(&url);
-        c
-    } else if cfg!(target_os = "windows") {
-        let mut c = std::process::Command::new("cmd");
-        c.args(["/C", "start", "", &url]);
-        c
-    } else {
-        let mut c = std::process::Command::new("xdg-open");
-        c.arg(&url);
-        c
-    };
-    cmd.spawn()
+    std::process::Command::new("/usr/bin/open")
+        .arg(&url)
+        .spawn()
         .map_err(|e| format!("Could not open link: {e}"))?;
     Ok(())
 }

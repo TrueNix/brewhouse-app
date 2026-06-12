@@ -22,11 +22,7 @@ pub fn locate_brew() -> Option<PathBuf> {
             return Some(cand);
         }
     }
-    for candidate in [
-        "/opt/homebrew/bin/brew",
-        "/usr/local/bin/brew",
-        "/home/linuxbrew/.linuxbrew/bin/brew",
-    ] {
+    for candidate in ["/opt/homebrew/bin/brew", "/usr/local/bin/brew"] {
         let p = PathBuf::from(candidate);
         if p.exists() {
             return Some(p);
