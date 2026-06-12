@@ -49,6 +49,6 @@ jobs:
             The build is unsigned, so on first launch either right-click the app
             and choose **Open**, or run:
             `xattr -dr com.apple.quarantine /Applications/Brewhouse.app`
-          releaseDraft: true
+          releaseDraft: false
           prerelease: false
           args: --target universal-apple-darwin
