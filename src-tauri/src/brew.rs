@@ -138,7 +138,7 @@ pub fn parse_installed(json: &str) -> Result<Vec<InstalledPackage>, String> {
         }
     }
 
-    out.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+    out.sort_by_key(|p| p.name.to_lowercase());
     Ok(out)
 }
 
