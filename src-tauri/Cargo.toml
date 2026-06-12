@@ -1,6 +1,6 @@
 [package]
 name = "brewhouse"
-version = "0.2.0"
+version = "0.2.1"
 description = "Brewhouse — a beautiful desktop GUI for Homebrew"
 authors = ["Brewhouse"]
 edition = "2021"
